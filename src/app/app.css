@@ -1,0 +1,10 @@
+/* Global styles should be in src/styles.css where Tailwind is imported */
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #111827; /* gray-900 */
+}
