@@ -2,11 +2,12 @@ import { Component, input, output } from '@angular/core';
 import { QuestionPayload } from '../../../core/models/interview.models';
 import { CodeWorkspaceComponent } from './code-workspace.component';
 import { SystemDesignWorkspaceComponent } from './system-design-workspace.component';
+import { ConversationalWorkspaceComponent } from './conversational-workspace.component';
 
 @Component({
   selector: 'app-workspace-host',
   standalone: true,
-  imports: [CodeWorkspaceComponent, SystemDesignWorkspaceComponent],
+  imports: [CodeWorkspaceComponent, SystemDesignWorkspaceComponent, ConversationalWorkspaceComponent],
   template: `
     @if (question()) {
       @switch (question()!.mode) {
@@ -24,8 +25,15 @@ import { SystemDesignWorkspaceComponent } from './system-design-workspace.compon
             (answerSubmitted)="answerSubmitted.emit($event)" 
           />
         }
+        @case ('BEHAVIORAL') {
+          <app-conversational-workspace
+            [question]="question()!" 
+            [isSubmitting]="isSubmitting()"
+            (answerSubmitted)="answerSubmitted.emit($event)" 
+          />
+        }
         @default {
-          <app-code-workspace 
+          <app-conversational-workspace 
             [question]="question()!" 
             [isSubmitting]="isSubmitting()"
             (answerSubmitted)="answerSubmitted.emit($event)" 
