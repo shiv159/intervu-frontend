@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, effect, input, output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { QuestionPayload } from '../../../core/models/interview.models';
 
@@ -56,16 +56,19 @@ export class ConversationalWorkspaceComponent {
 
   answerControl = new FormControl({ value: '', disabled: false }, [Validators.required]);
 
-  constructor() {
-    this.answerControl.valueChanges.subscribe(() => {
-      // Angular 17+ reactive inputs are supported via effects, but valueChanges works well for word count updates
-    });
-  }
+  private readonly _wordCount = signal(0);
+  readonly wordCount = this._wordCount.asReadonly();
 
-  // Disable form control dynamically via effect
-  // We use ngDoCheck or an effect for input bindings. But since isSubmitting is a signal, an effect is best.
-  // Actually, I'll just rely on the template binding for the button, and use the effect for the textarea:
-  private readonly _subEffect = import('@angular/core').then(({ effect }) => {
+  constructor() {
+    // Track word count reactively via valueChanges
+    this.answerControl.valueChanges.subscribe((value) => {
+      const text = (value || '').trim();
+      this._wordCount.set(text ? text.split(/\s+/).length : 0);
+    });
+
+    // Disable/enable the textarea based on isSubmitting signal
+    // Uses direct effect() call in constructor (injection context), matching
+    // the pattern used by CodeWorkspaceComponent and SystemDesignWorkspaceComponent
     effect(() => {
       if (this.isSubmitting()) {
         this.answerControl.disable({ emitEvent: false });
@@ -73,13 +76,6 @@ export class ConversationalWorkspaceComponent {
         this.answerControl.enable({ emitEvent: false });
       }
     });
-  });
-
-  wordCount(): number {
-    const text = this.answerControl.value || '';
-    const trimmed = text.trim();
-    if (!trimmed) return 0;
-    return trimmed.split(/\s+/).length;
   }
 
   onSubmit(): void {

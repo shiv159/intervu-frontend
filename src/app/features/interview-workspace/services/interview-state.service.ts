@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { InterviewApiService } from '../../../core/api/interview-api.service';
@@ -244,6 +245,12 @@ export class InterviewStateService {
   }
 
   private formatError(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      const detail = typeof error.error === 'string'
+        ? error.error
+        : error.error?.message || error.error?.error || error.statusText;
+      return `Error ${error.status}: ${detail}`;
+    }
     if (error instanceof Error) {
       return error.message;
     }

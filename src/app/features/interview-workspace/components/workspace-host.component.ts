@@ -32,6 +32,13 @@ import { ConversationalWorkspaceComponent } from './conversational-workspace.com
             (answerSubmitted)="answerSubmitted.emit($event)" 
           />
         }
+        @case ('CONVERSATIONAL') {
+          <app-conversational-workspace
+            [question]="question()!" 
+            [isSubmitting]="isSubmitting()"
+            (answerSubmitted)="answerSubmitted.emit($event)" 
+          />
+        }
         @default {
           <app-conversational-workspace 
             [question]="question()!" 
