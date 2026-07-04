@@ -177,6 +177,9 @@ export class CodeWorkspaceComponent implements AfterViewInit, OnDestroy {
       scrollBeyondLastLine: false,
       readOnly: false,
     });
+
+    // Restore any saved draft now that the Monaco model actually exists.
+    this.restoreDraft();
   }
 
   onLanguageChange(event: Event): void {
