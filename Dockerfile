@@ -25,6 +25,7 @@ COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 8080
 
-# At startup, replace BACKEND_URL_PLACEHOLDER with the actual backend URL,
-# then start nginx. Cloud Run injects BACKEND_URL as an env var.
-CMD ["/bin/sh", "-c", "sed -i \"s|BACKEND_URL_PLACEHOLDER|${BACKEND_URL:-http://localhost:8080}|g\" /etc/nginx/templates/default.conf.template && cp /etc/nginx/templates/default.conf.template /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# At startup, replace BACKEND_URL_PLACEHOLDER with backend URL.
+# Cloud Run should inject BACKEND_URL; if it is missing, fall back to deployed backend
+# so /api never loops back to nginx itself.
+CMD ["/bin/sh", "-c", "BACKEND_URL=\"${BACKEND_URL:-https://intervu-backend-jnzeurk34q-uc.a.run.app}\"; sed -i \"s|BACKEND_URL_PLACEHOLDER|${BACKEND_URL}|g\" /etc/nginx/templates/default.conf.template && cp /etc/nginx/templates/default.conf.template /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
