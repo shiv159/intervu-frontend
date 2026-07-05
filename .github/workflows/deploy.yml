@@ -2,7 +2,10 @@ name: Deploy Frontend to Cloud Run
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feature/*
+      - master
   pull_request:
     branches: [main]
 
