@@ -26,7 +26,7 @@ declare const monaco: any;
       <div class="flex justify-between items-center pb-3 border-b border-gray-700">
         <div>
           <p class="text-xs font-semibold tracking-wider text-blue-400 uppercase mb-1">Your answer</p>
-          <h3 class="text-lg font-bold text-gray-100">Draft the response in one pass</h3>
+          <h3 class="text-lg font-bold text-gray-100">Code Editor</h3>
         </div>
 
         <div class="flex items-center gap-2">
@@ -35,7 +35,6 @@ declare const monaco: any;
             id="language-select"
             [formControl]="languageControl"
             (change)="onLanguageChange($event)"
-            [disabled]="isSubmitting()"
             class="bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-gray-100 text-sm focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             @for (lang of languages; track lang.value) {
@@ -59,7 +58,6 @@ declare const monaco: any;
           id="approach-textarea"
           rows="4"
           [formControl]="approachControl"
-          [disabled]="isSubmitting()"
           placeholder="Explain your approach, complexity (Time & Space), edge cases, and trade-offs..."
           class="w-full bg-gray-900 border border-gray-700 rounded-md p-4 text-gray-100 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
         ></textarea>
@@ -124,11 +122,18 @@ export class CodeWorkspaceComponent implements AfterViewInit, OnDestroy {
       }
     });
 
-    // Sync editor read-only state with isSubmitting signal
+    // Sync editor read-only state and form controls with isSubmitting signal
     effect(() => {
       const submitting = this.isSubmitting();
       if (this.editorInstance) {
         this.editorInstance.updateOptions({ readOnly: submitting });
+      }
+      if (submitting) {
+        this.approachControl.disable();
+        this.languageControl.disable();
+      } else {
+        this.approachControl.enable();
+        this.languageControl.enable();
       }
     });
   }
@@ -144,10 +149,18 @@ export class CodeWorkspaceComponent implements AfterViewInit, OnDestroy {
   private waitForMonaco(callback: () => void, attempts = 0): void {
     if (typeof monaco !== 'undefined') {
       callback();
-    } else if (attempts < 50) {
-      setTimeout(() => this.waitForMonaco(callback, attempts + 1), 100);
     } else {
-      console.warn('[CodeWorkspace] Monaco did not load after 5 seconds — falling back');
+      const win = window as any;
+      if (typeof win.require !== 'undefined' && !win.monacoLoading) {
+        win.monacoLoading = true;
+        win.require(['vs/editor/editor.main'], () => {
+          callback();
+        });
+      } else if (attempts < 50) {
+        setTimeout(() => this.waitForMonaco(callback, attempts + 1), 100);
+      } else {
+        console.warn('[CodeWorkspace] Monaco did not load after 5 seconds — falling back');
+      }
     }
   }
 
@@ -164,6 +177,9 @@ export class CodeWorkspaceComponent implements AfterViewInit, OnDestroy {
       scrollBeyondLastLine: false,
       readOnly: false,
     });
+
+    // Restore any saved draft now that the Monaco model actually exists.
+    this.restoreDraft();
   }
 
   onLanguageChange(event: Event): void {

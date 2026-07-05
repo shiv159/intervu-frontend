@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 import { InterviewApiService } from '../../../core/api/interview-api.service';
@@ -38,6 +39,7 @@ export class InterviewStateService {
   // Computed Signals
   readonly question = computed<QuestionPayload | null>(() => this.session()?.currentQuestion ?? null);
   readonly hasSession = computed<boolean>(() => this.session() !== null);
+  readonly lastEvaluation = computed(() => this.session()?.lastEvaluation ?? null);
   
   readonly statusLabel = computed<string>(() => {
     if (this.isSubmitting()) return 'Scoring answer...';
@@ -112,6 +114,29 @@ export class InterviewStateService {
       this.errorMessage.set(this.formatError(error));
     } finally {
       this.isSubmitting.set(false);
+    }
+  }
+
+  async acknowledgeFeedback(): Promise<void> {
+    const s = this.session();
+    if (!s) return;
+
+    this.isBusy.set(true);
+    this.errorMessage.set('');
+
+    try {
+      const response = await firstValueFrom(
+        this.api.nextQuestion(this.currentUserId, s.sessionId),
+      );
+
+      this.session.set(response);
+      this.feedback.set(response.lastEvaluation ? this.feedbackFromEvaluation(response.sessionId, response.lastEvaluation) : null);
+      
+      await this.syncEvents();
+    } catch (error) {
+      this.errorMessage.set(this.formatError(error));
+    } finally {
+      this.isBusy.set(false);
     }
   }
 
@@ -220,6 +245,12 @@ export class InterviewStateService {
   }
 
   private formatError(error: unknown): string {
+    if (error instanceof HttpErrorResponse) {
+      const detail = typeof error.error === 'string'
+        ? error.error
+        : error.error?.message || error.error?.error || error.statusText;
+      return `Error ${error.status}: ${detail}`;
+    }
     if (error instanceof Error) {
       return error.message;
     }
