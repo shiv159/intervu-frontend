@@ -63,3 +63,53 @@ export interface SessionEventResponse {
   eventType: string;
   payload: Record<string, unknown>;
 }
+
+// ── Dashboard ──────────────────────────────────────────────────────
+
+export interface DashboardSessionSummary {
+  sessionId: string;
+  targetRole: string;
+  mode: string;
+  seniority: string;
+  state: string;
+  overallScore: number | null;
+  summary: string;
+  stateVersion: number;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+// ── Enhanced Session Feedback ──────────────────────────────────────
+
+export interface SessionFeedbackResponse {
+  sessionId: string;
+  targetRole: string;
+  mode: string;
+  seniority: string;
+  overallReadiness: string;
+  overallScore: number;
+  rounds: RoundFeedback[];
+  topicMastery: Record<string, TopicMastery>;
+  strengths: string[];
+  areasForGrowth: string[];
+  recommendedPractice: string[];
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface RoundFeedback {
+  questionId: string;
+  questionTitle: string;
+  score: number;
+  rubricScores: Record<string, number>;
+  strengths: string[];
+  gaps: string[];
+  mode: string;
+}
+
+export interface TopicMastery {
+  topic: string;
+  averageScore: number;
+  questionCount: number;
+  band: string;
+}
