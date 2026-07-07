@@ -3,11 +3,12 @@ import { Component, inject } from '@angular/core';
 import { InterviewStateService } from './services/interview-state.service';
 import { WorkspaceHostComponent } from './components/workspace-host.component';
 import { FeedbackReportComponent } from './components/feedback-report.component';
+import { SetupPageComponent } from '../interview-setup/setup-page.component';
 
 @Component({
   selector: 'app-interview-shell',
   standalone: true,
-  imports: [CommonModule, WorkspaceHostComponent, FeedbackReportComponent],
+  imports: [CommonModule, WorkspaceHostComponent, FeedbackReportComponent, SetupPageComponent],
   template: `
     <div class="flex flex-col h-full gap-6">
       <!-- Evaluation Status Stepper -->
@@ -107,6 +108,8 @@ import { FeedbackReportComponent } from './components/feedback-report.component'
             [followUp]="eval.followUpQuestion ?? ''"
             (continue)="onAcknowledgeFeedback()"
           />
+        } @else if (!state.hasSession()) {
+          <app-setup-page />
         } @else if (state.session()?.state === 'COMPLETED') {
           <div class="flex flex-col items-center justify-center h-full text-center bg-gray-800 border border-gray-700 rounded-xl p-8">
             <h3 class="text-3xl font-bold text-white mb-3">Interview Complete!</h3>
