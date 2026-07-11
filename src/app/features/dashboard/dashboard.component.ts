@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { DashboardService } from './dashboard.service';
 import type { DashboardSessionSummary } from '../../core/models/interview.models';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -12,9 +13,14 @@ import type { DashboardSessionSummary } from '../../core/models/interview.models
     <div class="dashboard">
       <header class="dashboard-header">
         <h1>Interview Sessions</h1>
-        <button class="btn btn-primary" (click)="startNewInterview()">
-          + Start New Interview
-        </button>
+        <div class="flex gap-3">
+          <button class="btn btn-primary" (click)="startNewInterview()">
+            + Start New Interview
+          </button>
+          <button class="btn btn-secondary" (click)="logout()">
+            Sign Out
+          </button>
+        </div>
       </header>
 
       @if (loading()) {
@@ -85,12 +91,11 @@ import type { DashboardSessionSummary } from '../../core/models/interview.models
 export class DashboardComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
 
   readonly sessions = signal<DashboardSessionSummary[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-
-  private readonly userId = 'demo-user';
 
   ngOnInit(): void {
     this.loadSessions();
@@ -99,7 +104,7 @@ export class DashboardComponent implements OnInit {
   loadSessions(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.dashboardService.loadDashboard(this.userId).subscribe({
+    this.dashboardService.loadDashboard().subscribe({
       next: (sessions) => {
         this.sessions.set(sessions);
         this.loading.set(false);
@@ -121,12 +126,12 @@ export class DashboardComponent implements OnInit {
   }
 
   viewFeedback(sessionId: string): void {
-    this.router.navigate(['/interview', sessionId, 'feedback']);
+      this.router.navigate(['/interview', sessionId, 'feedback']);
   }
 
   confirmDelete(sessionId: string): void {
     if (confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
-      this.dashboardService.deleteSession(this.userId, sessionId).subscribe({
+      this.dashboardService.deleteSession(sessionId).subscribe({
         next: () => this.loadSessions(),
         error: (err) => {
           this.error.set('Failed to delete session.');
@@ -134,6 +139,11 @@ export class DashboardComponent implements OnInit {
         },
       });
     }
+  }
+
+  async logout(): Promise<void> {
+    this.authService.logout();
+    await this.router.navigate(['/login']);
   }
 
   scoreClass(score: number): string {

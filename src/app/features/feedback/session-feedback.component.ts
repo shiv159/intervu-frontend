@@ -185,8 +185,6 @@ export class SessionFeedbackComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
-  private readonly userId = 'demo-user';
-
   ngOnInit(): void {
     const sessionId = this.route.snapshot.paramMap.get('id');
     if (!sessionId) {
@@ -194,7 +192,7 @@ export class SessionFeedbackComponent implements OnInit {
       this.loading.set(false);
       return;
     }
-    this.dashboardService.loadFeedback(this.userId, sessionId).subscribe({
+    this.dashboardService.loadFeedback(sessionId).subscribe({
       next: (fb) => {
         this.feedback.set(fb);
         this.loading.set(false);

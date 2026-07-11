@@ -12,7 +12,6 @@ import type {
 } from '../../../core/models/interview.models';
 
 export type SetupSnapshot = {
-  userId: string;
   sessionId: string;
 };
 
@@ -34,7 +33,6 @@ export class InterviewStateService {
   private lastEventVersion = 0;
   private currentIdempotencyKey = crypto.randomUUID();
   private pollTimer: number | null = null;
-  private currentUserId = '';
 
   // Computed Signals
   readonly question = computed<QuestionPayload | null>(() => this.session()?.currentQuestion ?? null);
@@ -45,22 +43,24 @@ export class InterviewStateService {
     if (this.isSubmitting()) return 'Scoring answer...';
     if (this.isBusy() || this.isRestoring()) return 'Loading interview...';
     const s = this.session();
-    if (s) return s.state;
+    if (s) {
+      if (s.state === 'WAITING_EVALUATION') return 'Evaluating answer…';
+      return s.state;
+    }
     return 'Ready to start';
   });
 
-  async startInterview(userId: string, request: CreateInterviewRequest): Promise<void> {
+  async startInterview(request: CreateInterviewRequest): Promise<void> {
     this.errorMessage.set('');
     this.isBusy.set(true);
-    this.currentUserId = userId;
 
     try {
-      const response = await firstValueFrom(this.api.createInterview(userId, request));
+      const response = await firstValueFrom(this.api.createInterview(request));
       
       this.session.set(response);
       this.feedback.set(response.lastEvaluation ? this.feedbackFromEvaluation(response.sessionId, response.lastEvaluation) : null);
       this.currentIdempotencyKey = crypto.randomUUID();
-      this.saveSessionSnapshot(userId, response.sessionId);
+      this.saveSessionSnapshot(response.sessionId);
       
       await this.syncEvents(true);
       this.startPolling();
@@ -71,16 +71,15 @@ export class InterviewStateService {
     }
   }
 
-  async restoreSession(userId: string, sessionId: string): Promise<void> {
+  async restoreSession(sessionId: string): Promise<void> {
     this.isRestoring.set(true);
     this.errorMessage.set('');
-    this.currentUserId = userId;
 
     try {
-      const response = await firstValueFrom(this.api.getInterview(userId, sessionId));
+      const response = await firstValueFrom(this.api.getInterview(sessionId));
       this.session.set(response);
       this.feedback.set(response.lastEvaluation ? this.feedbackFromEvaluation(response.sessionId, response.lastEvaluation) : null);
-      this.saveSessionSnapshot(userId, sessionId);
+      this.saveSessionSnapshot(sessionId);
       
       await this.syncEvents(true);
       this.startPolling();
@@ -101,13 +100,15 @@ export class InterviewStateService {
 
     try {
       const response = await firstValueFrom(
-        this.api.submitAnswer(this.currentUserId, s.sessionId, this.currentIdempotencyKey, answer),
+        this.api.submitAnswer(s.sessionId, this.currentIdempotencyKey, answer),
       );
 
       this.session.set(response.session);
-      this.feedback.set(this.feedbackFromEvaluation(response.session.sessionId, response.evaluation));
+      if (response.evaluation) {
+        this.feedback.set(this.feedbackFromEvaluation(response.session.sessionId, response.evaluation));
+      }
       this.currentIdempotencyKey = crypto.randomUUID();
-      this.saveSessionSnapshot(this.currentUserId, response.session.sessionId);
+      this.saveSessionSnapshot(response.session.sessionId);
       
       await this.syncEvents();
     } catch (error) {
@@ -126,7 +127,7 @@ export class InterviewStateService {
 
     try {
       const response = await firstValueFrom(
-        this.api.nextQuestion(this.currentUserId, s.sessionId),
+        this.api.nextQuestion(s.sessionId),
       );
 
       this.session.set(response);
@@ -146,7 +147,6 @@ export class InterviewStateService {
     this.events.set([]);
     this.currentIdempotencyKey = crypto.randomUUID();
     this.lastEventVersion = 0;
-    this.currentUserId = '';
     this.stopPolling();
     this.clearSessionSnapshot();
   }
@@ -169,7 +169,7 @@ export class InterviewStateService {
 
     try {
       const fetchedEvents = await firstValueFrom(
-        this.api.getEvents(this.currentUserId, s.sessionId, reset ? 0 : this.lastEventVersion),
+        this.api.getEvents(s.sessionId, reset ? 0 : this.lastEventVersion),
       );
 
       if (reset) {
@@ -214,8 +214,8 @@ export class InterviewStateService {
 
     try {
       const [newSession, newFeedback] = await Promise.all([
-        firstValueFrom(this.api.getInterview(this.currentUserId, s.sessionId)),
-        firstValueFrom(this.api.getFeedback(this.currentUserId, s.sessionId)),
+        firstValueFrom(this.api.getInterview(s.sessionId)),
+        firstValueFrom(this.api.getFeedback(s.sessionId)),
       ]);
 
       this.session.set(newSession);
@@ -236,8 +236,8 @@ export class InterviewStateService {
     };
   }
 
-  private saveSessionSnapshot(userId: string, sessionId: string): void {
-    localStorage.setItem('intervu.session', JSON.stringify({ userId, sessionId }));
+  private saveSessionSnapshot(sessionId: string): void {
+    localStorage.setItem('intervu.session', JSON.stringify({ sessionId }));
   }
 
   private clearSessionSnapshot(): void {

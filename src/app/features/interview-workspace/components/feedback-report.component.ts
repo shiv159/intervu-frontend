@@ -33,6 +33,21 @@ import { CommonModule } from '@angular/common';
         </div>
       </div>
 
+      @if (provider() || model()) {
+        <div class="flex gap-2 mb-4">
+          @if (provider()) {
+            <span class="bg-gray-900 border border-gray-700 text-gray-400 text-xs font-medium px-2.5 py-1 rounded-full">
+              {{ provider() }}
+            </span>
+          }
+          @if (model()) {
+            <span class="bg-gray-900 border border-gray-700 text-gray-400 text-xs font-medium px-2.5 py-1 rounded-full">
+              {{ model() }}
+            </span>
+          }
+        </div>
+      }
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Rubric Scores -->
         <div class="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
@@ -99,6 +114,8 @@ export class FeedbackReportComponent {
   strengths = input.required<string[]>();
   gaps = input.required<string[]>();
   followUp = input.required<string>();
+  provider = input<string | null>(null);
+  model = input<string | null>(null);
 
   continue = output<void>();
 

@@ -4,6 +4,28 @@ export interface CreateInterviewRequest {
   mode: string;
   skills: string[];
   focusAreas: string[];
+  resumeExtractId?: string | null;
+  jdExtractId?: string | null;
+}
+
+export interface ResumeExtractResponse {
+  id: string;
+  sourceFilename: string | null;
+  extractedText: string;
+  skills: string[];
+  focusAreas: string[];
+  claims: string[];
+  targetRole: string | null;
+  seniority: string | null;
+}
+
+export interface JdExtractResponse {
+  id: string;
+  sourceText: string;
+  requirements: string[];
+  technologies: string[];
+  responsibilities: string[];
+  seniority: string | null;
 }
 
 export interface QuestionPayload {
@@ -26,6 +48,12 @@ export interface EvaluationSummary {
   strengths: string[];
   gaps: string[];
   followUpQuestion: string | null;
+  provider: string | null;
+  model: string | null;
+  latencyMs: number | null;
+  cost: number | null;
+  evaluatorVersion: string | null;
+  promptVersion: string | null;
 }
 
 export interface InterviewSessionResponse {
@@ -41,12 +69,14 @@ export interface InterviewSessionResponse {
   focusAreas: string[];
   currentQuestion: QuestionPayload | null;
   lastEvaluation: EvaluationSummary | null;
+  aiMode: string;
 }
 
 export interface AnswerSubmissionResponse {
   interactionId: string;
   session: InterviewSessionResponse;
-  evaluation: EvaluationSummary;
+  evaluation: EvaluationSummary | null;
+  evaluationPending: boolean;
 }
 
 export interface FeedbackResponse {

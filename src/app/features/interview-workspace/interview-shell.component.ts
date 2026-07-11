@@ -11,6 +11,12 @@ import { SetupPageComponent } from '../interview-setup/setup-page.component';
   imports: [CommonModule, WorkspaceHostComponent, FeedbackReportComponent, SetupPageComponent],
   template: `
     <div class="flex flex-col h-full gap-6">
+      @if (state.session()?.aiMode === 'MOCK') {
+        <div class="bg-purple-900/30 border border-purple-700/50 text-purple-200 text-sm font-medium px-4 py-2 rounded-lg">
+          Running in MOCK mode — evaluations are deterministic
+        </div>
+      }
+
       <!-- Evaluation Status Stepper -->
       <nav aria-label="Progress" class="bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-sm">
         <ol role="list" class="flex items-center">
@@ -99,13 +105,21 @@ import { SetupPageComponent } from '../interview-setup/setup-page.component';
 
       <!-- Workspace Host or Feedback Report -->
       <div class="flex-1 min-h-[400px]">
-        @if (state.lastEvaluation(); as eval) {
+        @if (state.session()?.state === 'WAITING_EVALUATION') {
+          <div class="flex flex-col items-center justify-center h-full text-center bg-gray-800 border border-gray-700 rounded-xl p-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mb-4"></div>
+            <h3 class="text-xl font-bold text-gray-100 mb-2">Evaluating your answer…</h3>
+            <p class="text-gray-400">This may take a few seconds.</p>
+          </div>
+        } @else if (state.lastEvaluation(); as eval) {
           <app-feedback-report
             [score]="eval.totalScore"
             [rubric]="eval.rubricScores"
             [strengths]="eval.strengths"
             [gaps]="eval.gaps"
             [followUp]="eval.followUpQuestion ?? ''"
+            [provider]="eval.provider"
+            [model]="eval.model"
             (continue)="onAcknowledgeFeedback()"
           />
         } @else if (!state.hasSession()) {
